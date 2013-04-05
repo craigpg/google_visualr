@@ -3,6 +3,8 @@ module GoogleVisualr
   class BaseChart
     include GoogleVisualr::Packages
     include GoogleVisualr::ParamHelpers
+    
+    JS_VAR = 'chart'
 
     attr_accessor :data_table, :listeners
 
@@ -32,18 +34,22 @@ module GoogleVisualr
     #
     # Parameters:
     #  *div_id            [Required] The ID of the DIV element that the Google Chart should be rendered in.
-    def to_js(element_id)
-      js  = "\n<script type='text/javascript'>"
-      js << "\n  google.load('visualization','1', {packages: ['#{package_name}'], callback: function() {"
-      js << "\n    #{@data_table.to_js}"
-      js << "\n    var chart = new google.visualization.#{chart_name}(document.getElementById('#{element_id}'));"
-      @listeners.each do |listener|
-        js << "\n    google.visualization.events.addListener(chart, '#{listener[:event]}', #{listener[:callback]});"
-      end
-      js << "\n    chart.draw(data_table, #{js_parameters(@options)});"
-      js << "\n  }});"
-      js << "\n</script>"
-      js
+    #  options            [Optional] Listeners will use JQuery proxying to provide access to chart and data_table
+    def to_js(element_id, options = {})
+      listeners = @listeners.map do |l|
+        callback = options[:use_jquery_proxy] ? "jQuery.proxy(#{l[:callback]}, { chart: #{JS_VAR}, data_table: #{DataTable::JS_VAR} })" : l[:callback]
+        "google.visualization.events.addListener(chart, '#{l[:event]}', #{callback});"
+      end.join('\n')
+<<JS
+<script type='text/javascript'>
+  google.load('visualization','1', {packages: ['#{package_name}'], callback: function() {
+    #{@data_table.to_js}
+    var #{JS_VAR} = new google.visualization.#{chart_name}(document.getElementById('#{element_id}'));
+    #{listeners}
+    #{JS_VAR}.draw(data_table, #{js_parameters(@options)});
+  }});
+</script>
+JS
     end
 
   end

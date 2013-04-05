@@ -5,6 +5,8 @@ module GoogleVisualr
     attr_accessor :cols
     attr_accessor :rows
 
+    JS_VAR = 'data_table'
+
     ##############################
     # Constructors
     ##############################
@@ -201,16 +203,16 @@ module GoogleVisualr
 
     # Returns the JavaScript equivalent for this data_table instance.
     def to_js
-      js = "var data_table = new google.visualization.DataTable();"
+      js = "var #{JS_VAR} = new google.visualization.DataTable();"
 
       @cols.each do |column|
-        js << "data_table.addColumn("
+        js << "#{JS_VAR}.addColumn("
         js << column.to_json
         js << ");"
       end
 
       @rows.each do |row|
-        js << "data_table.addRow("
+        js << "#{JS_VAR}.addRow("
         js << "[#{row.map(&:to_js).join(", ")}]" unless row.empty?
         js << ");"
       end
